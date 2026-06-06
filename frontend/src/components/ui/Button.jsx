@@ -1,12 +1,18 @@
 export default function Button({
   children, variant = 'primary', size = 'md',
   disabled, onClick, type = 'button', style: extra,
-  loading,
+  loading, className = '',
 }) {
+  function handleClick(e) {
+    if (disabled || loading) return
+    onClick?.(e)
+  }
+
   return (
     <button
       type={type}
-      onClick={onClick}
+      className={className}
+      onClick={handleClick}
       disabled={disabled || loading}
       style={{
         ...BASE,

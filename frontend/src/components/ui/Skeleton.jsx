@@ -4,7 +4,7 @@ export function SkeletonLine({ width = '100%', height = 16 }) {
 
 export function SkeletonCard({ height = 120 }) {
   return (
-    <div style={{ backgroundColor:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'var(--radius-lg)', overflow:'hidden', height }} className="skeleton" />
+    <div style={{ backgroundColor:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-lg)', overflow:'hidden', height }} className="skeleton" />
   )
 }
 

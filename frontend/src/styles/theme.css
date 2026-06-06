@@ -68,6 +68,14 @@
 
   /* Page max width */
   --page-width: 1200px;
+
+  /* Legacy aliases — keep pages consistent during migration */
+  --brand:        var(--primary);
+  --brand-light:  var(--primary-light);
+  --brand-text:   var(--primary-text);
+  --bg-app:       var(--app-bg);
+  --bg-surface:   var(--surface);
+  --bg-card:      var(--surface);
 }
 
 /* ── Dark theme ── */

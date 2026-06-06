@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 
 const ThemeContext = createContext(null)
 const STORAGE_KEY = 'ai_interviewer_settings'
@@ -12,55 +12,90 @@ export const ACCENT_COLORS = {
 }
 
 const DEFAULTS = {
-  // Appearance — LIGHT by default
-  darkMode:      false,
-  compactMode:   false,
-  accentColor:   'blue',
-  fontSize:      'medium',
-  reduceMotion:  false,
+  themeMode: 'light',
+  darkMode: false,
+  compactMode: false,
+  accentColor: 'blue',
+  fontSize: 'medium',
+  reduceMotion: false,
 
-  // Notifications
-  emailNotif:         false,
-  interviewReminder:  true,
-  weeklyReport:       false,
-  browserPush:        false,
-  achievementAlerts:  true,
-  roadmapUpdates:     true,
+  emailNotif: false,
+  interviewReminder: false,
+  reminderTime: '09:00',
+  weeklyReport: false,
+  browserPush: false,
+  achievementAlerts: false,
+  roadmapUpdates: false,
 
-  // Interview preferences
-  preferredTypes:   ['Frontend', 'Backend', 'Full Stack'],
-  difficulty:       'Medium',
-  interviewLength:  '30',
-  preferredLang:    'JavaScript',
+  preferredTypes: [],
+  difficulty: 'Medium',
+  interviewLength: '30',
+  preferredLang: 'JavaScript',
   adaptiveDifficulty: false,
 
-  // Learning goals
-  dailyGoal:    5,
-  weeklyGoal:   3,
-  targetScore:  80,
-  studyDays:    5,
+  dailyGoal: 5,
+  weeklyGoal: 3,
+  targetScore: 80,
+  studyDays: 5,
 
-  // Privacy
-  publicProfile:     false,
-  shareStats:        false,
-  showAchievements:  true,
-  aiPersonalization: true,
+  publicProfile: false,
+  shareStats: false,
+  showAchievements: false,
+  aiPersonalization: false,
 
-  // Career
-  targetRole:      '',
   experienceLevel: 'Student',
-  college:         '',
-  gradYear:        '',
-  preferredTopics: ['React', 'Node.js', 'DSA'],
-  jobType:         'Internship',
-  careerGoal:      'Placement',
+  industry: '',
+  preferredTopics: [],
+  jobType: '',
+  careerGoal: '',
+}
+
+const BOOLEAN_KEYS = [
+  'darkMode', 'compactMode', 'reduceMotion',
+  'emailNotif', 'interviewReminder', 'weeklyReport', 'browserPush',
+  'achievementAlerts', 'roadmapUpdates', 'adaptiveDifficulty',
+  'publicProfile', 'shareStats', 'showAchievements', 'aiPersonalization',
+]
+
+function coerceBoolean(value, fallback) {
+  if (typeof value === 'boolean') return value
+  if (value === 'true' || value === 1 || value === '1') return true
+  if (value === 'false' || value === 0 || value === '0') return false
+  return fallback
+}
+
+function normalizeSettings(raw) {
+  const merged = { ...DEFAULTS, ...raw }
+  BOOLEAN_KEYS.forEach((key) => {
+    merged[key] = coerceBoolean(merged[key], DEFAULTS[key])
+  })
+  if (!Array.isArray(merged.preferredTypes)) merged.preferredTypes = []
+  if (!Array.isArray(merged.preferredTopics)) merged.preferredTopics = []
+  return merged
 }
 
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : DEFAULTS
-  } catch { return DEFAULTS }
+    return raw ? normalizeSettings(JSON.parse(raw)) : { ...DEFAULTS }
+  } catch {
+    return { ...DEFAULTS }
+  }
+}
+
+function resolveTheme(settings) {
+  if (settings.themeMode === 'system') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+  if (settings.themeMode === 'dark' || settings.darkMode) return 'dark'
+  return 'light'
+}
+
+function applyThemeToDom(settings) {
+  document.documentElement.setAttribute('data-theme', resolveTheme(settings))
+  document.documentElement.setAttribute('data-accent', settings.accentColor)
+  document.documentElement.setAttribute('data-font', settings.fontSize)
+  document.documentElement.setAttribute('data-compact', settings.compactMode ? 'compact' : 'normal')
 }
 
 export function ThemeProvider({ children }) {
@@ -68,31 +103,49 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-
-    // Apply theme to document root
-    document.documentElement.setAttribute('data-theme',
-      settings.darkMode ? 'dark' : 'light'
-    )
-    document.documentElement.setAttribute('data-accent',  settings.accentColor)
-    document.documentElement.setAttribute('data-font',    settings.fontSize)
-    document.documentElement.setAttribute('data-compact', settings.compactMode ? 'compact' : 'normal')
+    applyThemeToDom(settings)
   }, [settings])
 
-  // Also apply on mount immediately
   useEffect(() => {
-    const s = load()
-    document.documentElement.setAttribute('data-theme',
-      s.darkMode ? 'dark' : 'light'
-    )
-    document.documentElement.setAttribute('data-accent',  s.accentColor)
+    if (settings.themeMode !== 'system') return undefined
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = () => applyThemeToDom(settings)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [settings.themeMode, settings])
+
+  const update = useCallback((key, val) => {
+    setSettings(p => {
+      let nextVal = val
+      if (BOOLEAN_KEYS.includes(key)) {
+        nextVal = coerceBoolean(val, DEFAULTS[key])
+      }
+      const next = normalizeSettings({ ...p, [key]: nextVal })
+      if (key === 'themeMode') {
+        next.darkMode = val === 'dark'
+      }
+      if (key === 'darkMode') {
+        next.themeMode = val ? 'dark' : 'light'
+      }
+      return next
+    })
   }, [])
 
-  const update     = useCallback((key, val)  => setSettings(p => ({ ...p, [key]: val })), [])
-  const updateMany = useCallback((patch)     => setSettings(p => ({ ...p, ...patch })), [])
-  const accent     = ACCENT_COLORS[settings.accentColor] || ACCENT_COLORS.blue
+  const updateMany = useCallback((patch) => {
+    setSettings(p => normalizeSettings({ ...p, ...patch }))
+  }, [])
+
+  const accent = ACCENT_COLORS[settings.accentColor] || ACCENT_COLORS.blue
+
+  const value = useMemo(() => ({
+    settings,
+    update,
+    updateMany,
+    accent,
+  }), [settings, update, updateMany, accent])
 
   return (
-    <ThemeContext.Provider value={{ settings, update, updateMany, accent, ACCENT_COLORS }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   )
@@ -103,3 +156,5 @@ export function useTheme() {
   if (!ctx) throw new Error('useTheme must be inside <ThemeProvider>')
   return ctx
 }
+
+export { ACCENT_COLORS as accentColors }

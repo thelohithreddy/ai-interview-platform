@@ -1,16 +1,33 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useAuth }  from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../../context/AuthContext'
+import { useTheme } from '../../context/ThemeContext'
+import { getInitials } from '../../hooks/useInitials'
+import Toggle from '../ui/Toggle'
+
+const AUTH_LINKS = [{ to: '/', label: 'Home' }]
+
+const USER_LINKS = [
+  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/interview', label: 'Interview' },
+  { to: '/resume', label: 'Resume' },
+  { to: '/history', label: 'History' },
+  { to: '/saved', label: 'Saved' },
+  { to: '/profile', label: 'Profile' },
+  { to: '/settings', label: 'Settings' },
+]
 
 export default function Navbar() {
-  const { user, logout }     = useAuth()
+  const { user, logout } = useAuth()
   const { settings, update } = useTheme()
-  const navigate             = useNavigate()
-  const location             = useLocation()
-  const [mobileOpen, setMobileOpen]   = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const navRef     = useRef(null)
+  const navRef = useRef(null)
+
+  const links = user ? [{ to: '/', label: 'Home' }, ...USER_LINKS] : AUTH_LINKS
+  const initials = getInitials(user?.name, '?')
 
   useEffect(() => {
     setMobileOpen(false)
@@ -24,65 +41,57 @@ export default function Navbar() {
         setProfileOpen(false)
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
   }, [])
 
   useEffect(() => {
     function handler(e) {
-      if (e.key === 'Escape') { setMobileOpen(false); setProfileOpen(false) }
+      if (e.key === 'Escape') {
+        setMobileOpen(false)
+        setProfileOpen(false)
+      }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [])
 
-  function handleLogout() { logout(); navigate('/') }
-
   function isActive(path) {
-    return path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
+    if (path === '/') return location.pathname === '/'
+    return location.pathname.startsWith(path)
   }
 
-  const initials = user?.name
-    ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-    : '?'
-
-  const NAV_LINKS = user ? [
-    { to: '/',          label: 'Home' },
-    { to: '/dashboard', label: 'Dashboard' },
-    { to: '/history',   label: 'History' },
-    { to: '/saved',     label: 'Saved' },
-  ] : [
-    { to: '/', label: 'Home' },
-  ]
+  function handleLogout() {
+    logout()
+    navigate('/')
+  }
 
   return (
     <nav ref={navRef} style={S.nav}>
       <div style={S.inner}>
-
-        {/* Logo */}
         <Link to="/" style={S.logo}>
           <div style={S.logoMark}>A</div>
           <span style={S.logoText}>AI Interviewer</span>
         </Link>
 
-        {/* Desktop links */}
         <div className="desktop-nav" style={S.centerLinks}>
-          {NAV_LINKS.map(({ to, label }) => (
-            <Link key={to} to={to} style={{
-              ...S.navLink,
-              ...(isActive(to) ? S.navLinkActive : {}),
-            }}>
+          {links.map(({ to, label }) => (
+            <Link
+              key={to}
+              to={to}
+              style={{ ...S.navLink, ...(isActive(to) ? S.navLinkActive : {}) }}
+            >
               {label}
               {isActive(to) && <span style={S.activeDot} />}
             </Link>
           ))}
         </div>
 
-        {/* Desktop right */}
         <div className="desktop-auth" style={S.rightSection}>
           {user ? (
             <div style={{ position: 'relative' }}>
               <button
+                type="button"
                 style={S.profileTrigger}
                 onClick={() => setProfileOpen(v => !v)}
               >
@@ -104,19 +113,19 @@ export default function Navbar() {
                     </div>
                   </div>
                   <div style={S.dropdownDivider} />
-                  <DropItem to="/profile"   label="Profile" />
+                  <DropItem to="/profile" label="Profile" />
                   <DropItem to="/dashboard" label="Dashboard" />
-                  <DropItem to="/settings"  label="Settings" />
+                  <DropItem to="/settings" label="Settings" />
                   <div style={S.dropdownDivider} />
-                  <div style={S.dropdownToggleRow}>
-                    <span style={S.dropdownToggleLabel}>Dark mode</span>
-                    <MiniToggle
-                      value={settings.darkMode}
-                      onChange={v => update('darkMode', v)}
+                  <div style={{ padding: '4px 12px' }}>
+                    <Toggle
+                      label="Dark mode"
+                      value={settings.themeMode === 'dark'}
+                      onChange={v => update('themeMode', v ? 'dark' : 'light')}
                     />
                   </div>
                   <div style={S.dropdownDivider} />
-                  <button style={S.dropdownLogout} onClick={handleLogout}>
+                  <button type="button" style={S.dropdownLogout} onClick={handleLogout}>
                     Sign out
                   </button>
                 </div>
@@ -124,26 +133,25 @@ export default function Navbar() {
             </div>
           ) : (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Link to="/login"  style={S.loginLink}>Sign in</Link>
+              <Link to="/login" style={S.loginLink}>Sign in</Link>
               <Link to="/signup" style={S.signupLink}>Get started</Link>
             </div>
           )}
         </div>
 
-        {/* Hamburger */}
         <button
+          type="button"
           className="mobile-btn"
           style={S.hamburger}
           onClick={() => setMobileOpen(v => !v)}
           aria-label="Toggle menu"
         >
           <span style={{ ...S.bar, transform: mobileOpen ? 'translateY(7px) rotate(45deg)' : 'none' }} />
-          <span style={{ ...S.bar, opacity: mobileOpen ? 0 : 1, transform: mobileOpen ? 'scaleX(0)' : 'none' }} />
+          <span style={{ ...S.bar, opacity: mobileOpen ? 0 : 1 }} />
           <span style={{ ...S.bar, transform: mobileOpen ? 'translateY(-7px) rotate(-45deg)' : 'none' }} />
         </button>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <div style={S.mobileMenu}>
           {user && (
@@ -158,21 +166,15 @@ export default function Navbar() {
               <div style={S.mobileDivider} />
             </>
           )}
-          {NAV_LINKS.map(({ to, label }) => (
+          {links.map(({ to, label }) => (
             <Link key={to} to={to} style={S.mobileLink}>{label}</Link>
           ))}
-          {user && (
-            <>
-              <Link to="/profile"   style={S.mobileLink}>Profile</Link>
-              <Link to="/settings"  style={S.mobileLink}>Settings</Link>
-            </>
-          )}
           <div style={S.mobileDivider} />
           {user ? (
-            <button style={S.mobileLogout} onClick={handleLogout}>Sign out</button>
+            <button type="button" style={S.mobileLogout} onClick={handleLogout}>Sign out</button>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8 }}>
-              <Link to="/login"  style={S.mobileLoginBtn}>Sign in</Link>
+              <Link to="/login" style={S.mobileLoginBtn}>Sign in</Link>
               <Link to="/signup" style={S.mobileSignupBtn}>Get started</Link>
             </div>
           )}
@@ -183,95 +185,47 @@ export default function Navbar() {
 }
 
 function DropItem({ to, label }) {
-  return (
-    <Link to={to} style={S.dropdownItem}>{label}</Link>
-  )
-}
-
-function MiniToggle({ value, onChange }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={value}
-      onClick={() => onChange(!value)}
-      style={{
-        width: 36, height: 20, borderRadius: 100, border: 'none',
-        backgroundColor: value ? 'var(--primary)' : 'var(--border-strong)',
-        position: 'relative', cursor: 'pointer', flexShrink: 0,
-        transition: 'background-color 0.2s', padding: 0,
-      }}
-    >
-      <span style={{
-        position: 'absolute', top: 2, width: 16, height: 16,
-        borderRadius: '50%', backgroundColor: '#fff',
-        transition: 'transform 0.2s', pointerEvents: 'none',
-        transform: value ? 'translateX(18px)' : 'translateX(2px)',
-      }} />
-    </button>
-  )
+  return <Link to={to} style={S.dropdownItem}>{label}</Link>
 }
 
 const S = {
   nav: {
-    position: 'sticky',
-    top: 0,
-    zIndex: 1000,
+    position: 'sticky', top: 0, zIndex: 1000,
     backgroundColor: 'var(--surface)',
     borderBottom: '1px solid var(--border)',
     boxShadow: 'var(--shadow-xs)',
   },
   inner: {
-    maxWidth: 'var(--page-width)',
-    margin: '0 auto',
-    padding: '0 24px',
-    height: 60,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 24,
+    maxWidth: 'var(--page-width)', margin: '0 auto',
+    padding: '0 24px', height: 60,
+    display: 'flex', alignItems: 'center', gap: 16,
   },
-  logo: {
-    display: 'flex', alignItems: 'center', gap: 10,
-    textDecoration: 'none', flexShrink: 0,
-  },
+  logo: { display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 },
   logoMark: {
     width: 30, height: 30, borderRadius: 8,
     backgroundColor: 'var(--primary)', color: '#fff',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 14, fontWeight: 800,
   },
-  logoText: {
-    color: 'var(--text-primary)', fontWeight: 700,
-    fontSize: 16, letterSpacing: '-0.01em',
-  },
-  centerLinks: {
-    display: 'flex', alignItems: 'center', gap: 2, flex: 1,
-  },
+  logoText: { color: 'var(--text-primary)', fontWeight: 700, fontSize: 16 },
+  centerLinks: { display: 'flex', alignItems: 'center', gap: 2, flex: 1, overflowX: 'auto' },
   navLink: {
     position: 'relative', color: 'var(--text-secondary)',
-    textDecoration: 'none', fontSize: 14, fontWeight: 500,
-    padding: '6px 10px', borderRadius: 6,
-    transition: 'color 0.15s',
+    textDecoration: 'none', fontSize: 13, fontWeight: 500,
+    padding: '6px 8px', borderRadius: 6, whiteSpace: 'nowrap',
   },
-  navLinkActive: {
-    color: 'var(--text-primary)', fontWeight: 600,
-  },
+  navLinkActive: { color: 'var(--text-primary)', fontWeight: 600 },
   activeDot: {
     position: 'absolute', bottom: 0, left: '50%',
     transform: 'translateX(-50%)',
     width: 4, height: 4, borderRadius: '50%',
     backgroundColor: 'var(--primary)',
   },
-  rightSection: {
-    marginLeft: 'auto', display: 'flex',
-    alignItems: 'center',
-  },
+  rightSection: { marginLeft: 'auto', display: 'flex', alignItems: 'center' },
   profileTrigger: {
     display: 'flex', alignItems: 'center', gap: 8,
-    background: 'none',
-    border: '1px solid var(--border)',
-    borderRadius: 10, padding: '5px 10px 5px 5px',
-    cursor: 'pointer',
-    transition: 'border-color 0.15s',
+    background: 'none', border: '1px solid var(--border)',
+    borderRadius: 10, padding: '5px 10px 5px 5px', cursor: 'pointer',
   },
   avatar: {
     width: 28, height: 28, borderRadius: '50%',
@@ -281,106 +235,69 @@ const S = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   triggerName: { color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 },
-  chevron: {
-    color: 'var(--text-muted)', fontSize: 11,
-    transition: 'transform 0.2s', lineHeight: 1,
-  },
+  chevron: { color: 'var(--text-muted)', fontSize: 11, transition: 'transform 0.2s' },
   dropdown: {
-    position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-    width: 232,
-    backgroundColor: 'var(--surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 12, padding: 6,
-    boxShadow: 'var(--shadow-lg)',
-    animation: 'fadeIn 0.15s ease-out',
+    position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 232,
+    backgroundColor: 'var(--surface)', border: '1px solid var(--border)',
+    borderRadius: 12, padding: 6, boxShadow: 'var(--shadow-lg)',
   },
-  dropdownHead: {
-    display: 'flex', alignItems: 'center', gap: 10,
-    padding: '10px 10px 12px',
-  },
+  dropdownHead: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 10px 12px' },
   dropdownAvatar: {
     width: 34, height: 34, borderRadius: '50%',
-    backgroundColor: 'var(--primary-light)',
-    border: '1.5px solid var(--primary)',
+    backgroundColor: 'var(--primary-light)', border: '1.5px solid var(--primary)',
     color: 'var(--primary-text)', fontSize: 12, fontWeight: 700,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
   },
-  dropdownName:  { color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, margin: 0 },
+  dropdownName: { color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, margin: 0 },
   dropdownEmail: { color: 'var(--text-muted)', fontSize: 12, margin: '1px 0 0' },
   dropdownDivider: { height: 1, backgroundColor: 'var(--border)', margin: '4px 0' },
   dropdownItem: {
     display: 'block', padding: '9px 12px', borderRadius: 7,
-    color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500,
-    textDecoration: 'none',
-    transition: 'background 0.1s',
+    color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, textDecoration: 'none',
   },
-  dropdownToggleRow: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '8px 12px',
-  },
-  dropdownToggleLabel: { color: 'var(--text-secondary)', fontSize: 13 },
   dropdownLogout: {
     display: 'block', width: '100%', padding: '9px 12px',
     borderRadius: 7, background: 'none', border: 'none',
     color: 'var(--danger-text)', fontSize: 13, fontWeight: 500,
     cursor: 'pointer', textAlign: 'left',
   },
-  loginLink: {
-    color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500,
-    padding: '7px 12px', borderRadius: 7,
-  },
+  loginLink: { color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, padding: '7px 12px' },
   signupLink: {
     backgroundColor: 'var(--primary)', color: '#fff',
-    fontSize: 14, fontWeight: 600,
-    padding: '7px 16px', borderRadius: 8,
-    textDecoration: 'none',
+    fontSize: 14, fontWeight: 600, padding: '7px 16px', borderRadius: 8,
   },
   hamburger: {
     display: 'none', flexDirection: 'column', gap: 5,
-    background: 'none', border: 'none', cursor: 'pointer',
-    padding: 6, marginLeft: 'auto', flexShrink: 0,
+    background: 'none', border: 'none', cursor: 'pointer', padding: 6, marginLeft: 'auto',
   },
   bar: {
     display: 'block', width: 20, height: 2,
-    backgroundColor: 'var(--text-primary)', borderRadius: 2,
-    transition: 'all 0.2s',
+    backgroundColor: 'var(--text-primary)', borderRadius: 2, transition: 'all 0.2s',
   },
   mobileMenu: {
-    backgroundColor: 'var(--surface)',
-    borderTop: '1px solid var(--border)',
-    padding: '12px 20px 20px',
-    display: 'flex', flexDirection: 'column', gap: 2,
+    backgroundColor: 'var(--surface)', borderTop: '1px solid var(--border)',
+    padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 2,
   },
-  mobileUser: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '8px 4px 12px',
-  },
+  mobileUser: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 4px 12px' },
   mobileAvatar: {
     width: 38, height: 38, borderRadius: '50%',
-    backgroundColor: 'var(--primary-light)',
-    border: '1.5px solid var(--primary)',
+    backgroundColor: 'var(--primary-light)', border: '1.5px solid var(--primary)',
     color: 'var(--primary-text)', fontSize: 13, fontWeight: 700,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   mobileDivider: { height: 1, backgroundColor: 'var(--border)', margin: '8px 0' },
   mobileLink: {
     display: 'block', padding: '10px 8px', borderRadius: 7,
-    color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500,
-    textDecoration: 'none',
+    color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, textDecoration: 'none',
   },
   mobileLogout: {
     width: '100%', padding: '11px', borderRadius: 8,
-    background: 'none',
-    border: '1px solid var(--danger-border)',
-    color: 'var(--danger-text)', fontSize: 14, fontWeight: 500,
-    cursor: 'pointer', marginTop: 4, textAlign: 'center',
+    background: 'none', border: '1px solid var(--danger-border)',
+    color: 'var(--danger-text)', fontSize: 14, fontWeight: 500, cursor: 'pointer', marginTop: 4,
   },
   mobileLoginBtn: {
-    display: 'block', textAlign: 'center',
-    color: 'var(--text-primary)',
-    border: '1px solid var(--border-strong)',
-    padding: 11, borderRadius: 8, fontSize: 14, fontWeight: 500,
+    display: 'block', textAlign: 'center', color: 'var(--text-primary)',
+    border: '1px solid var(--border-strong)', padding: 11, borderRadius: 8, fontSize: 14,
   },
   mobileSignupBtn: {
     display: 'block', textAlign: 'center',

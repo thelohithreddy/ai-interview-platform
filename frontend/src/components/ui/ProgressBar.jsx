@@ -8,7 +8,7 @@ export default function ProgressBar({ value, color, label, showPct = true }) {
         </div>
       )}
       <div style={{ height:6, backgroundColor:'var(--border)', borderRadius:3, overflow:'hidden' }}>
-        <div style={{ height:'100%', width:`${Math.min(100, value)}%`, backgroundColor: color || 'var(--brand)', borderRadius:3, transition:'width 0.6s ease' }} />
+        <div style={{ height:'100%', width:`${Math.min(100, value)}%`, backgroundColor: color || 'var(--primary)', borderRadius:3, transition:'width 0.6s ease' }} />
       </div>
     </div>
   )

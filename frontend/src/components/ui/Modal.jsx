@@ -1,10 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 export default function Modal({ open, onClose, title, children, danger }) {
+  const dialogRef = useRef(null)
+
   useEffect(() => {
-    if (!open) return
-    function handler(e) { if (e.key === 'Escape') onClose() }
+    if (!open) return undefined
+    function handler(e) {
+      if (e.key === 'Escape') onClose()
+    }
     document.addEventListener('keydown', handler)
+    dialogRef.current?.focus()
     return () => document.removeEventListener('keydown', handler)
   }, [open, onClose])
 
@@ -14,19 +19,30 @@ export default function Modal({ open, onClose, title, children, danger }) {
     <div
       style={S.overlay}
       onClick={onClose}
+      role="presentation"
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
         style={S.modal}
         onClick={e => e.stopPropagation()}
       >
         <div style={S.header}>
-          <h3 style={{
-            ...S.title,
-            color: danger ? 'var(--danger-text)' : 'var(--text-primary)',
-          }}>
+          <h3
+            id="modal-title"
+            style={{
+              ...S.title,
+              color: danger ? 'var(--danger-text)' : 'var(--text-primary)',
+            }}
+          >
             {title}
           </h3>
-          <button style={S.closeBtn} onClick={onClose}>✕</button>
+          <button type="button" style={S.closeBtn} onClick={onClose} aria-label="Close">
+            ✕
+          </button>
         </div>
         {children}
       </div>
@@ -50,6 +66,7 @@ const S = {
     padding: '28px 28px 24px',
     width: '100%', maxWidth: 440,
     boxShadow: 'var(--shadow-lg)',
+    outline: 'none',
   },
   header: {
     display: 'flex', justifyContent: 'space-between',

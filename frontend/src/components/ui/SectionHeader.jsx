@@ -19,6 +19,7 @@ export default function SectionHeader({ title, desc, action }) {
       </div>
       {action && (
         <button
+          type="button"
           onClick={action.onClick}
           style={{
             background: 'none', border: 'none',

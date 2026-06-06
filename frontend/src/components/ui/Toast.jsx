@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 
 let _addToast = null
+
 export function showToast(msg, type = 'success') {
   _addToast?.(msg, type)
 }
@@ -10,7 +11,7 @@ export default function ToastContainer() {
 
   useEffect(() => {
     _addToast = (msg, type) => {
-      const id = Date.now()
+      const id = crypto.randomUUID()
       setToasts(p => [...p, { id, msg, type }])
       setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500)
     }
@@ -19,8 +20,8 @@ export default function ToastContainer() {
 
   const STYLES = {
     success: { bg: 'var(--success-bg)', border: 'var(--success-border)', color: 'var(--success-text)', icon: '✓' },
-    error:   { bg: 'var(--danger-bg)',  border: 'var(--danger-border)',  color: 'var(--danger-text)',  icon: '⚠' },
-    info:    { bg: 'var(--info-bg)',    border: 'var(--info-border)',    color: 'var(--info-text)',    icon: 'ℹ' },
+    error: { bg: 'var(--danger-bg)', border: 'var(--danger-border)', color: 'var(--danger-text)', icon: '⚠' },
+    info: { bg: 'var(--info-bg)', border: 'var(--info-border)', color: 'var(--info-text)', icon: 'ℹ' },
   }
 
   return (

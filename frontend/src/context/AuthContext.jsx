@@ -1,9 +1,9 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 
 const AuthContext = createContext(null)
 
 const SESSION_KEY = 'ai_interviewer_session'
-const SESSION_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000
 
 function readSession() {
   try {
@@ -28,20 +28,20 @@ function writeSession(user) {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null)
+  const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const savedUser = readSession()
-    setUser(savedUser)
+    setUser(readSession())
     setLoading(false)
   }, [])
 
   const login = useCallback((userData) => {
     const safeUser = {
-      name:  String(userData.name  ?? '').trim(),
+      name: String(userData.name ?? '').trim(),
       email: String(userData.email ?? '').trim().toLowerCase(),
       joinedAt: userData.joinedAt ?? new Date().toISOString(),
+      authProvider: userData.authProvider ?? 'email',
     }
     setUser(safeUser)
     writeSession(safeUser)
@@ -61,8 +61,13 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
+  const value = useMemo(
+    () => ({ user, loading, login, logout, updateUser }),
+    [user, loading, login, logout, updateUser]
+  )
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

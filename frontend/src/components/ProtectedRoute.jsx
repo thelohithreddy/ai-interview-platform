@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import Loader from './ui/Loader'
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -12,12 +13,7 @@ export default function ProtectedRoute({ children }) {
         backgroundColor: 'var(--app-bg)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: '50%',
-          border: '3px solid var(--border)',
-          borderTopColor: 'var(--primary)',
-          animation: 'spin 0.8s linear infinite',
-        }} />
+        <Loader />
       </div>
     )
   }
